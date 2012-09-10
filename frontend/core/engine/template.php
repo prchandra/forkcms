@@ -17,7 +17,7 @@
  *
  * @author Tijs Verkoyen <tijs@sumocoders.be>
  * @author Dieter Vanden Eynde <dieter@dieterve.be>
- * @author Matthias Mullie <matthias@mullie.eu>
+ * @author Matthias Mullie <forkcms@mullie.eu>
  * @author Frederik Heyninck <frederik@figure8.be>
  */
 class FrontendTemplate extends SpoonTemplate
@@ -99,17 +99,18 @@ class FrontendTemplate extends SpoonTemplate
 		// parse the label
 		$this->parseLabels();
 
-		// parse locale
-		$this->parseLocale();
-
 		// parse date/time formats
 		$this->parseDateTimeFormats();
 
 		// parse vars
 		$this->parseVars();
-
-		// parse headers
-		if(!$customHeaders) SpoonHTTP::setHeaders('content-type: text/html;charset=' . SPOON_CHARSET);
+		
+		// in case of a call from parseWidget we don't need to set the headers again!
+		if(!Spoon::exists('parseWidget') || !Spoon::get('parseWidget'))
+		{
+			// parse headers
+			if(!$customHeaders) SpoonHTTP::setHeaders('content-type: text/html;charset=' . SPOON_CHARSET);
+		}
 
 		// get template path
 		$template = FrontendTheme::getPath($template);
@@ -244,6 +245,9 @@ class FrontendTemplate extends SpoonTemplate
 
 		// debug stuff
 		$this->mapModifier('dump', array('FrontendTemplateModifiers', 'dump'));
+
+		// profiles
+		$this->mapModifier('profilesetting', array('FrontendTemplateModifiers', 'profileSetting'));
 	}
 
 	/**
@@ -372,32 +376,6 @@ class FrontendTemplate extends SpoonTemplate
 
 		// assign messages
 		$this->assignArray($messages, 'msg');
-	}
-
-	/**
-	 * Parse the locale (things like months, days, ...)
-	 */
-	private function parseLocale()
-	{
-		// init vars
-		$locale = array();
-
-		// get months
-		$monthsLong = SpoonLocale::getMonths(FRONTEND_LANGUAGE, false);
-		$monthsShort = SpoonLocale::getMonths(FRONTEND_LANGUAGE, true);
-
-		// get days
-		$daysLong = SpoonLocale::getWeekDays(FRONTEND_LANGUAGE, false, 'sunday');
-		$daysShort = SpoonLocale::getWeekDays(FRONTEND_LANGUAGE, true, 'sunday');
-
-		// build labels
-		foreach($monthsLong as $key => $value) $locale['locMonthLong' . SpoonFilter::ucfirst($key)] = $value;
-		foreach($monthsShort as $key => $value) $locale['locMonthShort' . SpoonFilter::ucfirst($key)] = $value;
-		foreach($daysLong as $key => $value) $locale['locDayLong' . SpoonFilter::ucfirst($key)] = $value;
-		foreach($daysShort as $key => $value) $locale['locDayShort' . SpoonFilter::ucfirst($key)] = $value;
-
-		// assign
-		$this->assignArray($locale);
 	}
 
 	/**
@@ -769,8 +747,49 @@ class FrontendTemplateModifiers
 
 		// create new widget instance and return parsed content
 		$extra = new FrontendBlockWidget($module, $action, $data);
-		$extra->execute();
-		return $extra->getContent();
+		
+		// set parseWidget because we will need it to skip setting headers in the display
+		Spoon::set('parseWidget', true);
+		
+		try
+		{
+			$extra->execute();
+			$content = $extra->getContent();
+			Spoon::set('parseWidget', null);
+			return $content;
+		}
+		catch(Exception $e)
+		{
+			// if we are debugging, we want to see the exception
+			if(SPOON_DEBUG) throw $e;
+
+			return null;
+		}
+	}
+
+	/**
+	 * Output a profile setting
+	 *
+	 * @param string $var The variable
+	 * @param string $name The name of the setting
+	 * @return string
+	 */
+	public static function profileSetting($var, $name)
+	{
+		$profile = FrontendProfilesModel::get((int) $var);
+		if($profile === false) return '';
+
+		// convert into array
+		$profile = $profile->toArray();
+
+		// @remark I know this is dirty, but I couldn't find a better way.
+		if(in_array($name, array('display_name', 'registered_on', 'full_url')) && isset($profile[$name]))
+		{
+			return $profile[$name];
+		}
+
+		elseif(isset($profile['settings'][$name])) return $profile['settings'][$name];
+		else return '';
 	}
 
 	/**

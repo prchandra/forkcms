@@ -2,6 +2,7 @@
  * Utilities; useful scripts
  *
  * @author	Tijs Verkoyen <tijs@sumocoders.be>
+ * @author	Thomas Deceuninck <thomasdeceuninck@netlash.com>
  */
 var utils =
 {
@@ -83,6 +84,15 @@ utils.cookies =
 
 		// fallback
 		return null;
+	},
+	
+	setCookie: function(name, value, days)
+	{
+		if(typeof days == 'undefined') days = 7;
+		
+		var expireDate = new Date();
+		expireDate.setDate(expireDate.getDate() + days);
+		document.cookie = name + '=' + escape(value) + ';expires=' + expireDate.toUTCString() + ';path=/';
 	}
 }
 
@@ -149,14 +159,14 @@ utils.form =
 		var regexp = /^((http|ftp|https):\/{2})?(([0-9a-zA-Z_-]+\.)+[0-9a-zA-Z]+)((:[0-9]+)?)((\/([~0-9a-zA-Z\#%@\.\/_-]+)?(\?[0-9a-zA-Z%@\/&=_-]+)?)?)$/i;
 		return regexp.test(element.val());
 	}
-},
+}
 
 /**
  * Functions related to strings
  *
  * @author	Tijs Verkoyen <tijs@sumocoders.be>
  * @author	Dieter Vanden Eynde <dieter@netlash.com>
- * @author	Matthias Mullie <matthias@mullie.eu>
+ * @author	Matthias Mullie <forkcms@mullie.eu>
  */
 utils.string =
 {
@@ -244,6 +254,16 @@ utils.string =
 	{
 		if(value == undefined) return '';
 		return value.replace(new RegExp(needle, 'g'), replacement);
+	},
+
+	/**
+	 * Strip HTML tags
+	 *
+	 * @return	string
+	 */
+	stripTags: function(value)
+	{
+		return value.replace(/<[^>]*>/ig, '');
 	},
 
 	/**

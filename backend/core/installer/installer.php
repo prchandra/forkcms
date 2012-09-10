@@ -12,7 +12,7 @@
  *
  * @author Davy Hellemans <davy.hellemans@netlash.com>
  * @author Tijs Verkoyen <tijs@sumocoders.be>
- * @author Matthias Mullie <matthias@mullie.eu>
+ * @author Matthias Mullie <forkcms@mullie.eu>
  * @author Dieter Vanden Eynde <dieter.vandeneynde@netlash.com>
  * @author Annelies Van Extergem <annelies.vanextergem@netlash.com>
  * @author Jelmer Snoeck <jelmer.snoeck@netlash.com>
@@ -827,6 +827,42 @@ class ModuleInstaller
 				$this->getDB()->insert('modules_settings', $item);
 			}
 		}
+	}
+
+	/**
+	 * Subscribe to an event, when the subsription already exists, the callback will be updated.
+	 *
+	 * @param string $eventModule The module that triggers the event.
+	 * @param string $eventName The name of the event.
+	 * @param string $module The module that subsribes to the event.
+	 * @param mixed $callback The callback that should be executed when the event is triggered.
+	 */
+	public function subscribeToEvent($eventModule, $eventName, $module, $callback)
+	{
+		// build record
+		$item['event_module'] = (string) $eventModule;
+		$item['event_name'] = (string) $eventName;
+		$item['module'] = (string) $module;
+		$item['callback'] = serialize($callback);
+		$item['created_on'] = gmdate('Y-m-d H:i:s');
+
+		// get db
+		$db = $this->getDB();
+
+		// check if the subscription already exists
+		$exists = (bool) $db->getVar(
+			'SELECT 1
+			 FROM hooks_subscriptions AS i
+			 WHERE i.event_module = ? AND i.event_name = ? AND i.module = ?
+			 LIMIT 1',
+			array($eventModule, $eventName, $module)
+		);
+
+		// update
+		if($exists) $db->update('hooks_subscriptions', $item, 'event_module = ? AND event_name = ? AND module = ?', array($eventModule, $eventName, $module));
+
+		// insert
+		else $db->insert('hooks_subscriptions', $item);
 	}
 }
 

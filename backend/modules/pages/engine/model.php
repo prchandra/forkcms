@@ -12,7 +12,7 @@
  *
  * @author Tijs Verkoyen <tijs@sumocoders.be>
  * @author Davy Hellemans <davy.hellemans@netlash.com>
- * @author Matthias Mullie <matthias@mullie.eu>
+ * @author Matthias Mullie <forkcms@mullie.eu>
  */
 class BackendPagesModel
 {
@@ -215,6 +215,7 @@ class BackendPagesModel
 				$navigation[$page['type']][$page['parent_id']][$pageID] = $temp;
 			}
 		}
+
 		// order by URL
 		asort($keys);
 
@@ -348,8 +349,8 @@ class BackendPagesModel
 			'SELECT i.id, i.navigation_title
 			 FROM pages AS i
 			 WHERE i.id IN(' . implode(',', array_keys($keys)) . ')
-			 AND i.language = ?',
-			array($language)
+			 AND i.language = ? AND i.status = ?',
+			array($language, 'active')
 		);
 
 		// loop the types in the order we want them to appear
@@ -458,6 +459,7 @@ class BackendPagesModel
 	 *
 	 * @param int $id The id of the page to delete.
 	 * @param string[optional] $language The language wherin the page will be deleted, if not provided we will use the working language.
+	 * @param int[optional] $revisionId If specified the given revision will be deleted, used for deleting drafts.
 	 * @return bool
 	 */
 	public static function delete($id, $language = null, $revisionId = null)
@@ -500,6 +502,9 @@ class BackendPagesModel
 
 		// delete page and the revisions
 		if(!empty($revisionIDs)) $db->delete('pages', 'revision_id IN (' . implode(',', $revisionIDs) . ')');
+
+		// delete tags
+		BackendTagsModel::saveTags($id, '', 'pages');
 
 		// return
 		return true;
@@ -733,8 +738,8 @@ class BackendPagesModel
 		return (int) BackendModel::getDB()->getVar(
 			'SELECT revision_id
 			 FROM pages AS i
-			 WHERE i.id = ? AND i.language = ? AND i.status = ?',
-			array($id, $language, 'active')
+			 WHERE i.id = ? AND i.language = ? AND i.status != ?',
+			array($id, $language, 'archive')
 		);
 	}
 
@@ -1012,7 +1017,7 @@ class BackendPagesModel
 
 		// start HTML
 		$html = '<h4>' . SpoonFilter::ucfirst(BL::lbl('MainNavigation')) . '</h4>' . "\n";
-		$html .= '<div class="clearfix">' . "\n";
+		$html .= '<div class="clearfix" data-tree="main">' . "\n";
 		$html .= '	<ul>' . "\n";
 		$html .= '		<li id="page-1" rel="home">';
 
@@ -1032,7 +1037,7 @@ class BackendPagesModel
 		{
 			// meta pages
 			$html .= '<h4>' . SpoonFilter::ucfirst(BL::lbl('Meta')) . '</h4>' . "\n";
-			$html .= '<div class="clearfix">' . "\n";
+			$html .= '<div class="clearfix" data-tree="meta">' . "\n";
 			$html .= '	<ul>' . "\n";
 
 			// are there any meta pages
@@ -1064,7 +1069,7 @@ class BackendPagesModel
 		$html .= '<h4>' . SpoonFilter::ucfirst(BL::lbl('Footer')) . '</h4>' . "\n";
 
 		// start
-		$html .= '<div class="clearfix">' . "\n";
+		$html .= '<div class="clearfix" data-tree="footer">' . "\n";
 		$html .= '	<ul>' . "\n";
 
 		// are there any footer pages
@@ -1099,7 +1104,7 @@ class BackendPagesModel
 			$html .= '<h4>' . SpoonFilter::ucfirst(BL::lbl('Root')) . '</h4>' . "\n";
 
 			// start
-			$html .= '<div class="clearfix">' . "\n";
+			$html .= '<div class="clearfix" data-tree="root">' . "\n";
 			$html .= '	<ul>' . "\n";
 
 			// loop the items
@@ -1286,14 +1291,16 @@ class BackendPagesModel
 	 * @param int $id The id for the page that has to be moved.
 	 * @param int $droppedOn The id for the page where to page has been dropped on.
 	 * @param string $typeOfDrop The type of drop, possible values are: before, after, inside.
+	 * @param string $tree The tree the item is dropped on, possible values are: main, meta, footer, root.
 	 * @param string[optional] $language The language to use, if not provided we will use the working language.
 	 * @return bool
 	 */
-	public static function move($id, $droppedOn, $typeOfDrop, $language = null)
+	public static function move($id, $droppedOn, $typeOfDrop, $tree, $language = null)
 	{
 		$id = (int) $id;
 		$droppedOn = (int) $droppedOn;
 		$typeOfDrop = SpoonFilter::getValue($typeOfDrop, array('before', 'after', 'inside'), 'inside');
+		$tree = SpoonFilter::getValue($tree, array('main', 'meta', 'footer', 'root'), 'inside');
 		$language = ($language === null) ? BackendLanguage::getWorkingLanguage() : (string) $language;
 
 		// get db
@@ -1330,7 +1337,8 @@ class BackendPagesModel
 		// decide new type
 		if($droppedOn == 0)
 		{
-			$newType = 'meta';
+			if($tree == 'footer') $newType = 'footer';
+			else $newType = 'meta';
 		}
 
 		elseif($newParent == 0)
@@ -1562,7 +1570,12 @@ class BackendPagesModel
 			else
 			{
 				// set new page revision id
-				foreach($blocksContent as &$block) $block['revision_id'] = $page['revision_id'];
+				foreach($blocksContent as &$block)
+				{
+					$block['revision_id'] = $page['revision_id'];
+					$block['created_on'] = BackendModel::getUTCDate(null, $block['created_on']);
+					$block['edited_on'] = BackendModel::getUTCDate(null, $block['edited_on']);
+				}
 			}
 
 			// insert the blocks

@@ -10,7 +10,7 @@
 /**
  * This is the index-action (default), it will display the overview of location items
  *
- * @author Matthias Mullie <matthias@mullie.eu>
+ * @author Matthias Mullie <forkcms@mullie.eu>
  * @author Jelmer Snoeck <jelmer.snoeck@netlash.com>
  */
 class BackendLocationIndex extends BackendBaseActionIndex
@@ -54,6 +54,9 @@ class BackendLocationIndex extends BackendBaseActionIndex
 		$this->items = BackendLocationModel::getAll();
 		$this->settings = BackendLocationModel::getMapSettings(0);
 		$firstMarker = current($this->items);
+
+		// if there are no markers we reset it to the birthplace of Fork
+		if($firstMarker === false) $firstMarker = array('lat' => '51.052146', 'lng' => '3.720491');
 
 		// load the settings from the general settings
 		if(empty($this->settings))

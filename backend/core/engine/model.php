@@ -12,6 +12,7 @@
  *
  * @author Tijs Verkoyen <tijs@sumocoders.be>
  * @author Dieter Vanden Eynde <dieter.vandeneynde@netlash.com>
+ * @author Reclamebureau Siesqo <info@siesqo.be>
  */
 class BackendModel
 {
@@ -144,8 +145,12 @@ class BackendModel
 			$i++;
 		}
 
+		// some applications aren't real seperate applications, they are virtual applications inside the backend.
+		$namedApplication = NAMED_APPLICATION;
+		if(in_array($namedApplication, array('backend_direct', 'backend_ajax', 'backend_js', 'backend_cronjob'))) $namedApplication = 'backend';
+
 		// build the URL and return it
-		return '/' . NAMED_APPLICATION . '/' . $language . '/' . $module . '/' . $action . $querystring;
+		return '/' . $namedApplication . '/' . $language . '/' . $module . '/' . $action . $querystring;
 	}
 
 	/**
@@ -202,16 +207,47 @@ class BackendModel
 	 * Delete a page extra by its id
 	 *
 	 * @param int $id The id of the extra to delete.
+	 * @param bool $deleteBlock Should the block be deleted? Default is false.
 	 */
-	public static function deleteExtraById($id)
+	public static function deleteExtraById($id, $deleteBlock = false)
 	{
 		$id = (int) $id;
+		$deleteBlock = (bool) $deleteBlock;
+
+		// delete the blocks
+		if($deleteBlock)
+		{
+			BackendModel::getDB(true)->delete('pages_blocks', 'extra_id = ?', $id);
+		}
 
 		// unset blocks
-		BackendModel::getDB(true)->update('pages_blocks', array('extra_id' => null), 'extra_id = ?', $id);
+		else
+		{
+			BackendModel::getDB(true)->update('pages_blocks', array('extra_id' => null), 'extra_id = ?', $id);
+		}
 
 		// delete extra
 		BackendModel::getDB(true)->delete('modules_extras', 'id = ?', $id);
+	}
+
+	/**
+	 * Delete all extras for a certain value in the data array of that module_extra.
+	 *
+	 * @param string $module 			The module for the extra.
+	 * @param string $field 			The field of the data you want to check the value for.
+	 * @param string $value 			The value to check the field for.
+	 * @param string [optional]$action 	The action you want to filter on.
+	 */
+	public function deleteExtrasForData($module, $field, $value)
+	{
+		// get ids
+		$ids = self::getExtrasForData((string) $module, (string) $field, (string) $value);
+	
+		// delete extras
+		if(!empty($ids)) BackendModel::getDB(true)->delete('modules_extras', 'id IN (' . implode(',', $ids) . ')');
+	
+		// invalidate the cache for the module
+		BackendModel::invalidateFrontendCache((string) $module, BL::getWorkingLanguage());
 	}
 
 	/**
@@ -293,6 +329,35 @@ class BackendModel
 	}
 
 	/**
+	 * Generate thumbnails based on the folders in the path
+	 * Use
+	 *  - 128x128 as foldername to generate an image where the width will be 128px and the height will be 128px
+	 *  - 128x as foldername to generate an image where the width will be 128px, the height will be calculated based on the aspect ratio.
+	 *  - x128 as foldername to generate an image where the height will be 128px, the width will be calculated based on the aspect ratio.
+	 *
+	 * @param string $path The path wherin the thumbnail-folders will be stored.
+	 * @param string $sourceFile The location of the source file.
+	 */
+	public static function generateThumbnails($path, $sourcefile)
+	{
+		// get folder listing
+		$folders = self::getThumbnailFolders($path);
+		$filename = basename($sourcefile);
+
+		// loop folders
+		foreach($folders as $folder)
+		{
+			// generate the thumbnail
+			$thumbnail = new SpoonThumbnail($sourcefile, $folder['width'], $folder['height']);
+			$thumbnail->setAllowEnlargement(true);
+
+			// if the width & height are specified we should ignore the aspect ratio
+			if($folder['width'] !== null && $folder['height'] !== null) $thumbnail->setForceOriginalAspectRatio(false);
+			$thumbnail->parseToFile($folder['path'] . '/' . $filename);
+		}
+	}
+
+	/**
 	 * Fetch the list of long date formats including examples of these formats.
 	 *
 	 * @return array
@@ -355,6 +420,74 @@ class BackendModel
 		}
 
 		return Spoon::get('database');
+	}
+
+	/**
+	 * Get extras
+	 *
+	 * @param array $ids 	The ids of the modules_extras to get.
+	 * @return array		
+	 */
+	public static function getExtras($ids)
+	{
+		// get db
+		$db = BackendModel::getDB(true);
+	
+		// loop and cast to integers
+		foreach($ids as &$id) $id = (int) $id;
+	
+		// create an array with an equal amount of questionmarks as ids provided
+		$extraIdPlaceHolders = array_fill(0, count($ids), '?');
+	
+		// get extras
+		return (array) $db->getRecords('SELECT i.*
+										FROM modules_extras AS i
+										WHERE i.id IN (' . implode(', ', $extraIdPlaceHolders) . ')',
+										$ids);
+	}
+	
+	/**
+	 * Get extras for data
+	 *
+	 * @param string $module 	The module for the extra.
+	 * @param string $key 		The key of the data you want to check the value for.
+	 * @param string $value 	The value to check the key for.
+	 * @return array			The ids for the extras.
+	 */
+	public static function getExtrasForData($module, $key, $value)
+	{
+		// init variables
+		$module = (string) $module;
+		$key = (string) $key;
+		$value = (string) $value;
+		$result = array();
+
+		// get all possible extras
+		$items = (array) BackendModel::getDB(true)->getPairs(
+			'SELECT i.id, i.data
+			 FROM modules_extras AS i
+			 WHERE i.module = ? AND i.data != ?',
+			 array($module, 'NULL')
+		);
+
+		// stop here when no items
+		if(empty($items)) return $result;
+
+		// loop items
+		foreach($items as $id => $data)
+		{
+			// unserialize data
+			$data = unserialize($data);
+
+			// check if the field is present in the data and add it to result
+			if(isset($data[$key]) && $data[$key] == $value)
+			{
+				// add id to result
+				$result[] = $id;
+			}
+		}
+
+		return $result;
 	}
 
 	/**
@@ -542,6 +675,49 @@ class BackendModel
 		}
 
 		return $possibleFormats;
+	}
+
+	/**
+	 * Get the thumbnail folders
+	 *
+	 * @param string $path The path
+	 * @param bool[optional] $includeSource Should the source-folder be included in the return-array.
+	 * @return array
+	 */
+	public static function getThumbnailFolders($path, $includeSource = false)
+	{
+		$folders = SpoonDirectory::getList((string) $path, false, null, '/^([0-9]*)x([0-9]*)$/');
+
+		if($includeSource && SpoonDirectory::exists($path . '/source')) $folders[] = 'source';
+
+		$return = array();
+
+		foreach($folders as $folder)
+		{
+			$item = array();
+			$chunks = explode('x', $folder, 2);
+
+			// skip invalid items
+			if(count($chunks) != 2 && !$includeSource) continue;
+
+			$item['dirname'] = $folder;
+			$item['path'] = $path . '/' . $folder;
+			if(substr($path, 0, strlen(PATH_WWW)) == PATH_WWW) $item['url'] = substr($path, strlen(PATH_WWW));
+			if($folder == 'source')
+			{
+				$item['width'] = null;
+				$item['height'] = null;
+			}
+			else
+			{
+				$item['width'] = ($chunks[0] != '') ? (int) $chunks[0] : null;
+				$item['height'] = ($chunks[1] != '') ? (int) $chunks[1] : null;
+			}
+
+			$return[] = $item;
+		}
+
+		return $return;
 	}
 
 	/**
@@ -1249,5 +1425,60 @@ class BackendModel
 			'hooks_subscriptions', 'event_module = ? AND event_name = ? AND module = ?',
 			array($eventModule, $eventName, $module)
 		);
+	}
+
+	/**
+	 * Update extra
+	 * 
+	 * @param int $id			The id for the extra.
+	 * @param string $key		The key you want to update.
+	 * @param string $value 	The new value.
+	 */
+	public static function updateExtra($id, $key, $value)
+	{
+		// error checking the key
+		if(!in_array((string) $key, array('label', 'action', 'data', 'hidden', 'sequence')))
+		{
+			throw new BackendException('The key ' . $key . ' can\'t be updated.');
+		}
+
+		// init item
+		$item = array();
+
+		// build item
+		$item[(string) $key] = (string) $value;
+
+		// update the extra
+		BackendModel::getDB(true)->update('modules_extras', $item, 'id = ?', array((int) $id));
+	}
+
+	/**
+	 * Update extra data
+	 *
+	 * @param int $id			The id for the extra.
+	 * @param string $key		The key in the data you want to update.
+	 * @param string $value		The new value.
+	 */
+	public static function updateExtraData($id, $key, $value)
+	{
+		// get db
+		$db = BackendModel::getDB(true);
+
+		// get data
+		$data = (string) $db->getVar(
+			'SELECT i.data
+			 FROM modules_extras AS i
+			 WHERE i.id = ?',
+			 array((int) $id)
+		);
+
+		// unserialize data
+		$data = unserialize($data);
+
+		// built item
+		$data[(string) $key] = (string) $value;
+
+		// update value
+		$db->update('modules_extras', array('data' => serialize($data)), 'id = ?', array((int) $id));
 	}
 }
