@@ -24,9 +24,11 @@ class BackendSettingsAjaxTestEmailConnection extends BackendBaseAJAXAction
 		// mailer type
 		$mailerType = SpoonFilter::getPostValue('mailer_type', array('smtp', 'mail'), 'mail');
 
-		// create new SpoonEmail-instance
-		$email = new SpoonEmail();
-		$email->setTemplateCompileDirectory(BACKEND_CACHE_PATH . '/compiled_templates');
+		// swiftmailer
+		require_once PATH_LIBRARY . '/external/swiftmailer/lib/swift_required.php';
+
+		// default transport instance
+		$transport = Swift_MailTransport::newInstance();
 
 		// send via SMTP
 		if($mailerType == 'smtp')
@@ -43,16 +45,16 @@ class BackendSettingsAjaxTestEmailConnection extends BackendBaseAJAXAction
 			try
 			{
 				// set server and connect with SMTP
-				$email->setSMTPConnection($SMTPServer, $SMTPPort, 10);
+				$transport = Swift_SmtpTransport::newInstance($SMTPServer, $SMTPPort);
 			}
 
-			catch(SpoonEmailException $e)
+			catch(Exception $e)
 			{
 				$this->output(self::ERROR, null, $e->getMessage());
 			}
 
 			// set authentication if needed
-			if($SMTPUsername != '' && $SMTPPassword != '') $email->setSMTPAuth($SMTPUsername, $SMTPPassword);
+			if($SMTPUsername !== null && $SMTPPassword !== null) $transport->setUsername($SMTPUsername)->setPassword($SMTPPassword);
 		}
 
 		$fromEmail = SpoonFilter::getPostValue('mailer_from_email', null, '');
@@ -75,13 +77,20 @@ class BackendSettingsAjaxTestEmailConnection extends BackendBaseAJAXAction
 		$email->setHTMLContent(BL::msg('TestMessage'));
 		$email->setCharset(SPOON_CHARSET);
 
+		$message = Swift_Message::newInstance('Test')
+				->setFrom(array($fromEmail => $fromName))
+				->setTo(array($toEmail => $toName))
+				->setReplyTo(array($replyToEmail => $replyToName))
+				->setBody(BL::msg('TestMessage'), 'text/html')
+				->setCharset(SPOON_CHARSET);
+
 		try
 		{
-			if($email->send()) $this->output(self::OK, null, '');
+			if($mailer->send($message)) $this->output(self::OK, null, '');
 			else $this->output(self::ERROR, null, 'unknown');
 		}
 
-		catch(SpoonEmailException $e)
+		catch(Exception $e)
 		{
 			$this->output(self::ERROR, null, $e->getMessage());
 		}
