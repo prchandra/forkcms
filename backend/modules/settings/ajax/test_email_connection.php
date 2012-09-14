@@ -25,7 +25,7 @@ class BackendSettingsAjaxTestEmailConnection extends BackendBaseAJAXAction
 		$mailerType = SpoonFilter::getPostValue('mailer_type', array('smtp', 'mail'), 'mail');
 
 		// swiftmailer
-		require_once PATH_LIBRARY . '/external/swiftmailer/lib/swift_required.php';
+		require_once PATH_WWW . '/vendor/swiftmailer/lib/swift_required.php';
 
 		// default transport instance
 		$transport = Swift_MailTransport::newInstance();
@@ -83,7 +83,10 @@ class BackendSettingsAjaxTestEmailConnection extends BackendBaseAJAXAction
 				->setReplyTo(array($replyToEmail => $replyToName))
 				->setBody(BL::msg('TestMessage'), 'text/html')
 				->setCharset(SPOON_CHARSET);
-
+		
+		// Create the Mailer using your created Transport
+		$mailer = Swift_Mailer::newInstance($transport);
+		
 		try
 		{
 			if($mailer->send($message)) $this->output(self::OK, null, '');

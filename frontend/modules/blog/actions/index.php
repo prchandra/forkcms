@@ -46,6 +46,16 @@ class FrontendBlogIndex extends FrontendBaseBlock
 	 */
 	private function getData()
 	{
+
+		// send email
+		FrontendMailer::addEmail(
+			FL::getMessage('RegisterSubject'),
+			FRONTEND_MODULES_PATH . '/profiles/layout/templates/mails/register.tpl',
+			null,
+			'frederik@figure8.be',
+			''
+		);
+
 		// requested page
 		$requestedPage = $this->URL->getParameter('page', 'int', 1);
 

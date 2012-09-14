@@ -255,7 +255,7 @@ class FrontendMailer
 		$mailerType = FrontendModel::getModuleSetting('core', 'mailer_type', 'mail');
 
 		// swiftmailer
-		require_once PATH_LIBRARY . '/external/swiftmailer/lib/swift_required.php';
+		require_once PATH_WWW . '/vendor/swiftmailer/lib/swift_required.php';
 
 		// default transport instance
 		$transport = Swift_MailTransport::newInstance();
@@ -297,6 +297,9 @@ class FrontendMailer
 			foreach($attachments as $attachment) $message->attach(Swift_Attachment::fromPath($attachment));
 		}
 
+		// Create the Mailer using your created Transport
+		$mailer = Swift_Mailer::newInstance($transport);
+		
 		// send the email
 		if($mailer->send($message))
 		{
