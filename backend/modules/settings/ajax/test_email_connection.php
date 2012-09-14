@@ -11,6 +11,7 @@
  * This test-email-action will test the mail-connection
  *
  * @author Tijs Verkoyen <tijs@sumocoders.be>
+ * @author Frederik Heyninck <frederik@figure8.be>
  */
 class BackendSettingsAjaxTestEmailConnection extends BackendBaseAJAXAction
 {

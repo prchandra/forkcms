@@ -15,6 +15,7 @@
  * @author Dave Lens <dave.lens@netlash.com>
  * @author Dieter Vanden Eynde <dieter.vandeneynde@netlash.com>
  * @author Sam Tubbax <sam@sumocoders.be>
+ * @author Frederik Heyninck <frederik@figure8.be>
  */
 class BackendMailer
 {

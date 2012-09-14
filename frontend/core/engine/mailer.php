@@ -13,6 +13,7 @@
  * @author Tijs Verkoyen <tijs@sumocoders.be>
  * @author Dieter Vanden Eynde <dieter@dieterve.be>
  * @author Sam Tubbax <sam@sumocoders.be>
+ * @author Frederik Heyninck <frederik@figure8.be>
  */
 class FrontendMailer
 {
