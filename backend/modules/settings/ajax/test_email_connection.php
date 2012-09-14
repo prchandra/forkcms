@@ -70,13 +70,6 @@ class BackendSettingsAjaxTestEmailConnection extends BackendBaseAJAXAction
 		if($replyToEmail == '' || !SpoonFilter::isEmail($replyToEmail)) $this->output(self::BAD_REQUEST, null, BL::err('EmailIsInvalid'));
 
 		// set some properties
-		$email->setFrom($fromEmail, $fromName);
-		$email->addRecipient($toEmail, $toName);
-		$email->setReplyTo($replyToEmail, $replyToName);
-		$email->setSubject('Test');
-		$email->setHTMLContent(BL::msg('TestMessage'));
-		$email->setCharset(SPOON_CHARSET);
-
 		$message = Swift_Message::newInstance('Test')
 				->setFrom(array($fromEmail => $fromName))
 				->setTo(array($toEmail => $toName))
@@ -86,7 +79,7 @@ class BackendSettingsAjaxTestEmailConnection extends BackendBaseAJAXAction
 		
 		// Create the Mailer using your created Transport
 		$mailer = Swift_Mailer::newInstance($transport);
-		
+
 		try
 		{
 			if($mailer->send($message)) $this->output(self::OK, null, '');

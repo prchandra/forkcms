@@ -299,7 +299,7 @@ class FrontendMailer
 
 		// Create the Mailer using your created Transport
 		$mailer = Swift_Mailer::newInstance($transport);
-		
+
 		// send the email
 		if($mailer->send($message))
 		{
