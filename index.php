@@ -8,8 +8,6 @@
  */
 
 // require
-<<<<<<< HEAD
-=======
 // @todo this is wrong. It will break our install validating.
 require_once 'library/globals.php';
 require_once 'autoload.php';
@@ -19,7 +17,6 @@ set_include_path('library' . PATH_SEPARATOR . get_include_path());
 require_once 'spoon/spoon.php';
 
 require_once 'bootstrap.php';
->>>>>>> 53a1ebb... Add the database service to the bootstrap
 require_once 'routing.php';
 
 
