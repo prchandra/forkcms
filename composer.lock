@@ -1,5 +1,5 @@
 {
-    "hash": "ab962600f83980fcdde233e03c9d4fcb",
+    "hash": "74e99cf0908af90645b8e39e5e3df94e",
     "packages": [
         {
             "name": "facebook/php-sdk",
@@ -20,7 +20,6 @@
                 "ext-curl": "*",
                 "ext-json": "*"
             },
-            "time": "1344965300",
             "type": "library",
             "installation-source": "source",
             "autoload": {
@@ -42,7 +41,8 @@
             "keywords": [
                 "facebook",
                 "sdk"
-            ]
+            ],
+            "time": "1344965300"
         },
         {
             "name": "tijsverkoyen/akismet",
@@ -62,7 +62,6 @@
                 "php": ">=5.2.0",
                 "ext-curl": "*"
             },
-            "time": "1349014712",
             "type": "library",
             "installation-source": "source",
             "autoload": {
@@ -81,7 +80,8 @@
                 }
             ],
             "description": "Akismet is a wrapper-class to communicate with the Akismet API.",
-            "homepage": "https://github.com/tijsverkoyen/Akismet"
+            "homepage": "https://github.com/tijsverkoyen/Akismet",
+            "time": "1349014712"
         },
         {
             "name": "tijsverkoyen/css-to-inline-styles",
@@ -101,7 +101,6 @@
                 "php": ">=5.2.0",
                 "ext-curl": "*"
             },
-            "time": "1349015591",
             "type": "library",
             "installation-source": "source",
             "autoload": {
@@ -120,7 +119,57 @@
                 }
             ],
             "description": "CssToInlineStyles is a class that enables you to convert HTML-pages/files into HTML-pages/files with inline styles. This is very useful when you're sending emails.",
-            "homepage": "https://github.com/tijsverkoyen/CssToInlineStyles"
+            "homepage": "https://github.com/tijsverkoyen/CssToInlineStyles",
+            "time": "1349015591"
+        },
+        {
+            "name": "twig/twig",
+            "version": "dev-master",
+            "source": {
+                "type": "git",
+                "url": "git://github.com/fabpot/Twig.git",
+                "reference": "347bc81d6ed8e2bb793236aa9917c7e83f81c2b3"
+            },
+            "dist": {
+                "type": "zip",
+                "url": "https://github.com/fabpot/Twig/zipball/347bc81d6ed8e2bb793236aa9917c7e83f81c2b3",
+                "reference": "347bc81d6ed8e2bb793236aa9917c7e83f81c2b3",
+                "shasum": ""
+            },
+            "require": {
+                "php": ">=5.2.4"
+            },
+            "time": "1349702400",
+            "type": "library",
+            "extra": {
+                "branch-alias": {
+                    "dev-master": "1.10-dev"
+                }
+            },
+            "installation-source": "source",
+            "autoload": {
+                "psr-0": {
+                    "Twig_": "lib/"
+                }
+            },
+            "license": [
+                "BSD-3"
+            ],
+            "authors": [
+                {
+                    "name": "Fabien Potencier",
+                    "email": "fabien@symfony.com"
+                },
+                {
+                    "name": "Armin Ronacher",
+                    "email": "armin.ronacher@active-4.com"
+                }
+            ],
+            "description": "Twig, the flexible, fast, and secure template language for PHP",
+            "homepage": "http://twig.sensiolabs.org",
+            "keywords": [
+                "templating"
+            ]
         }
     ],
     "packages-dev": null,
@@ -131,6 +180,7 @@
     "stability-flags": {
         "facebook/php-sdk": 20,
         "tijsverkoyen/akismet": 20,
-        "tijsverkoyen/css-to-inline-styles": 20
+        "tijsverkoyen/css-to-inline-styles": 20,
+        "twig/twig": 20
     }
 }
