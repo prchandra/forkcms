@@ -13,6 +13,6 @@
 					<table id="mainHolder">
 						<tr>
 							{include:{$BACKEND_CORE_PATH}/layout/templates/subnavigation.tpl}
-							{include:{$BACKEND_CORE_PATH}/layout/templates/switch.tpl}
+						{include:{$BACKEND_CORE_PATH}/layout/templates/switch.tpl}
 							<td id="contentHolder">
 								<div class="inner">

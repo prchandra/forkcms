@@ -1,0 +1,60 @@
+{% extends "base.html.twig" %}
+
+{% block body %}
+
+{# TODO bodyId, bodyClass #}
+<body id="{{ bodyID }}" class="{{ bodyClass }}">
+	<table id="encloser">
+		<tr>
+			<td>
+				{% include "header.html.twig" %}
+			</td>
+		</tr>
+		<tr>
+			<td id="container">
+				<div id="main">
+
+					<table id="mainHolder">
+						<tr>
+							<td id="subnavigation">
+								<table>
+									<tr>
+										<td id="moduleHolder">
+
+											{# TODO replace with custom tag, filter, ... #}
+											{$var|getnavigation}
+
+										</td>
+									</tr>
+								</table>
+							</td>
+
+							{% include "switch.html.twig" %}
+
+							<td id="contentHolder">
+								<div class="inner">
+
+									{% block module %}
+									{% endblock %}
+
+								</div>
+							</td>
+						</tr>
+					</table>
+
+				</div>
+			</td>
+		</tr>
+	</table>
+
+	{% block messaging %}
+		{{ parent() }}
+	{% endblock %}
+
+	{% block ajaxSpinner %}
+		{{ parent() }}
+	{% endblock %}
+
+</body>
+
+{% endblock %}

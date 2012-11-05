@@ -1,0 +1,58 @@
+<!DOCTYPE html>
+<html lang="{{ INTERFACE_LANGUAGE }}">
+<head>
+	<meta charset="utf-8" />
+	<meta http-equiv="X-UA-Compatible" content="IE=EmulateIE7" />
+	<meta http-equiv="X-UA-Compatible" content="chrome=1" />
+	<meta name="robots" content="noindex, nofollow" />
+
+	<title>{{ SITE_TITLE }} - Fork CMS</title>
+	<link rel="shortcut icon" href="/backend/favicon.ico" />
+
+	{% for cssFile in cssFiles %}<link rel="stylesheet" href="{{ cssFile }}" />{{ CRLF }}{{ TAB }}{% endfor %}
+	<!--[if IE 7]><link rel="stylesheet" href="/backend/core/layout/css/conditionals/ie7.css" /><![endif]-->
+	<!--[if IE 8]><link rel="stylesheet" href="/backend/core/layout/css/conditionals/ie8.css" /><![endif]-->
+
+	{% for jsFile in jsFiles %}<script src="{{ jsFile }}"></script>{{ CRLF }}{{ TAB }}{% endfor %}
+	<script>
+		//<![CDATA[
+			{{ jsData }}
+
+			// reports
+			$(function()
+			{
+				{% if formError %}jsBackend.messages.add('error', "{{ errFormError|addslashes }}");{% endif %}
+				{% if usingRevision %}jsBackend.messages.add('notice', "{{ msgUsingARevision|addslashes }}");{% endif %}
+				{% if usingDraft %}jsBackend.messages.add('notice', "{{ msgUsingADraft|addslashes }}");{% endif %}
+				{% if report %}jsBackend.messages.add('success', "{{ reportMessage|addslashes }}");{% endif %}
+				{% if errorMessage %}jsBackend.messages.add('error', "{{ errorMessage|addslashes }}");{% endif %}
+			});
+		//]]>
+	</script>
+</head>
+
+{% block body %}
+
+	{% block messaging %}
+		<div id="messaging">
+			<noscript>
+				<div class="formMessage errorMessage">
+					<p>{$errJavascriptNotEnabled}</p>
+				</div>
+			</noscript>
+			<div id="noCookies" class="formMessage errorMessage" style="display: none;">
+				<p>{$errCookiesNotEnabled}</p>
+			</div>
+		</div>
+	{% endblock %}
+
+	{% block ajaxSpinner %}
+		<div id="ajaxSpinner" style="position: fixed; top: 10px; right: 10px; display: none;">
+			<img src="/backend/core/layout/images/spinner.gif" width="16" height="16" alt="loading" />
+		</div>
+	{% endblock %}
+
+{% endblock %}
+
+</html>
+

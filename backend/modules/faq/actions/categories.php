@@ -31,10 +31,23 @@ class BackendFaqCategories extends BackendBaseActionIndex
 	{
 		parent::execute();
 
-		$this->loadDataGrid();
+		// TODO extract
+		$this->twig();
 
+		$this->loadDataGrid();
 		$this->parse();
-		$this->display();
+
+		// TODO remove exception silencing.
+		// There is no categories.tpl anymore, so BackendBaseActionIndex#display()
+		// will throw an exception.
+		try
+		{
+			$this->display();
+		}
+		catch(Exception $e)
+		{
+			// empty on purpose.
+		}
 	}
 
 	/**
@@ -72,16 +85,7 @@ class BackendFaqCategories extends BackendBaseActionIndex
 	 */
 	protected function parse()
 	{
-		parent::parse();
-
-		$this->tpl->assign('dataGrid', ($this->dataGrid->getNumResults() != 0) ? $this->dataGrid->getContent() : false);
-
-		// check if this action is allowed
-		if(BackendAuthentication::isAllowedAction('add_category') && $this->multipleCategoriesAllowed)
-		{
-			$this->tpl->assign('showFaqAddCategory', true);
-		}
-		else $this->tpl->assign('showFaqAddCategory', false);
+		echo $this->twigRender();
 	}
 
 	/**
@@ -102,4 +106,93 @@ class BackendFaqCategories extends BackendBaseActionIndex
 		if($count == 1) return '<a href="' . $link . '">' . $count . ' ' . BL::getLabel('Question') . '</a>';
 		return '';
 	}
+
+
+
+	//{{{ TWIG
+
+	/**
+	 * Setup Twig environment.
+	 */
+	private function twig()
+	{
+		$this->twig = new \Twig_Environment($this->twigLoader(), $this->twigConfig());
+		$this->twigFilters();
+		$this->twigGlobals();
+	}
+
+	/**
+	 * @return Twig_LoaderInterface The template loader for the Twig environment.
+	 */
+	private function twigLoader()
+	{
+		$loader = new \Twig_Loader_Filesystem(BACKEND_CORE_PATH . '/layout/templates');
+		$loader->addPath(BACKEND_MODULE_PATH . '/layout/templates', 'faq');
+		return $loader;
+	}
+
+	/**
+	 * return @array Configuration for the Twig environment.
+	 */
+	private function twigConfig()
+	{
+		$config = array(
+			'cache' => BACKEND_CACHE_PATH . '/cached_templates/twig',
+			'debug' => SPOON_DEBUG, // TODO remove Spoon dependency.
+		);
+		return $config;
+	}
+
+	/**
+	 * Setup filters for the Twig environment.
+	 */
+	private function twigFilters()
+	{
+		$this->twig->addFilter('addslashes', new Twig_Filter_Function('addslashes'));
+		$this->twig->addFilter('ucfirst', new Twig_Filter_Function('SpoonFilter::ucfirst'));
+	}
+
+	private function twigGlobals()
+	{
+		$this->twig->addGlobal('LANGUAGE', BL::getWorkingLanguage());
+		$this->twig->addGlobal('SITE_MULTILANGUAGE', SITE_MULTILANGUAGE);
+		$this->twig->addGlobal(
+			'SITE_TITLE',
+			BackendModel::getModuleSetting(
+				'core',
+				'site_title_' . BL::getWorkingLanguage(), SITE_DEFAULT_TITLE
+			)
+		);
+		// TODO goes up, here we assume the current user is authenticated already.
+		$this->twig->addGlobal('user', BackendAuthentication::getUser());
+
+		$languages = BackendLanguage::getWorkingLanguages();
+		$workingLanguages = array();
+		foreach($languages as $abbreviation => $label) $workingLanguages[] = array('abbr' => $abbreviation, 'label' => $label, 'selected' => ($abbreviation == BackendLanguage::getWorkingLanguage()));
+		$this->twig->addGlobal('workingLanguages', $workingLanguages);
+	}
+
+	/**
+	 * @internal Called by BackendFaqCategories#parse()
+	 *
+	 * @return string Rendered output of this action via the Twig environment.
+	 */
+	private function twigRender()
+	{
+		// TODO design
+		//	- render template?
+		//	- set (add to) context via method in the parent class?
+		//	- return a response?
+		$tplVars = array(
+			'dataGrid' => ($this->dataGrid->getNumResults() ? $this->dataGrid->getContent() : false),
+			'showFaqAddCategory' => BackendAuthentication::isAllowedAction('add_category')
+				&& $this->multipleCategoriesAllowed
+		);
+		return $this->twig->loadTemplate('@faq/categories.html.twig')->render($tplVars);
+	}
+
+	//}}}
+
+
+
 }
